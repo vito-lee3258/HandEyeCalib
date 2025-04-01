@@ -16,6 +16,8 @@ int main()
 
     IF->Init();
 
+    IF->LoadImage();
+
     IF->Destroy();
 
     return 0;

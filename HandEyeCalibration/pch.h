@@ -10,5 +10,7 @@ public:
 	virtual void Init() = 0;
 	virtual void Destroy() = 0;
 	virtual char* GetName() = 0;
+
+	virtual void LoadImage() = 0;
 };
 #endif //PCH_H
