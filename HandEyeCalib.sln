@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HandEyeCalib", "HandEyeCalib\HandEyeCalib.vcxproj", "{0DB48E57-02A9-409B-B4E8-A8299ECD7964}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HandEyeCalibration", "HandEyeCalibration\HandEyeCalibration.vcxproj", "{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HandEyeTest", "HandEyeTest\HandEyeCalib.vcxproj", "{0DB48E57-02A9-409B-B4E8-A8299ECD7964}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,14 +15,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x64.ActiveCfg = Debug|x64
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x64.Build.0 = Debug|x64
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x86.ActiveCfg = Debug|Win32
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x86.Build.0 = Debug|Win32
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x64.ActiveCfg = Release|x64
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x64.Build.0 = Release|x64
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x86.ActiveCfg = Release|Win32
-		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x86.Build.0 = Release|Win32
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Debug|x64.ActiveCfg = Debug|x64
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Debug|x64.Build.0 = Debug|x64
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Debug|x86.ActiveCfg = Debug|Win32
@@ -31,6 +23,14 @@ Global
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Release|x64.Build.0 = Release|x64
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Release|x86.ActiveCfg = Release|Win32
 		{14D86DB9-DF31-4CF7-AD47-9E532B4D60EB}.Release|x86.Build.0 = Release|Win32
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x64.ActiveCfg = Debug|x64
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x64.Build.0 = Debug|x64
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x86.ActiveCfg = Debug|Win32
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Debug|x86.Build.0 = Debug|Win32
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x64.ActiveCfg = Release|x64
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x64.Build.0 = Release|x64
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x86.ActiveCfg = Release|Win32
+		{0DB48E57-02A9-409B-B4E8-A8299ECD7964}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
