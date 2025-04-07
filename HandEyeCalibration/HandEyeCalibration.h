@@ -87,12 +87,17 @@ public:
 
     bool ReadStringList(const string& filename, vector<string>& l);
 	bool GetRobotPose(const char* robotPosePath);
-	bool GetCameraMatrix(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion, vector<cv::Mat> Rotation, vector<cv::Mat> Transform);
-
+	bool GetCameraMatrix(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion, vector<cv::Mat> &Rotation, vector<cv::Mat> &Transform);
+    bool attitudeVector2Matrix(Mat m, Mat &R, Mat &T, bool isEuler);
+    Mat EulerToRotationMatrix(double pitch, double yaw, double roll);
 private:
-	vector<cv::Mat> myRobotPose;
+    const double PI = 3.14159265358979323846;  // 精确到18位小数
+
+	vector<Mat> myRobotPose;
     vector<Mat> myCameraRotation;
     vector<Mat> myCameraTransform;
+    vector<Mat> R_gripper2base;
+    vector<Mat> T_gripper2base;
 
 };
 

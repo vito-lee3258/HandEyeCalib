@@ -48,11 +48,21 @@ void HandEyeCalibration::Run(const char* imagePath, const char* pointCloudPath, 
     distortion.at<float>(0, 3) = CameraMatrix->P2;
     distortion.at<float>(0, 4) = CameraMatrix->K3;
 
+    cout << "标定前相机内参：" << cameraMatrix << endl;
+    cout << "标定前畸变系数：" << distortion << endl;
+
 	GetCameraMatrix(imagePath, cameraMatrix, distortion, myCameraRotation, myCameraTransform);
 
     GetRobotPose(robotPosePath);
 
-	printf("FHello::Init\n");
+    // 手眼标定。
+    Mat R_cam2gripper(3, 3, CV_64FC1);
+    Mat T_cam2gripper(3, 1, CV_64FC1);
+    calibrateHandEye(R_gripper2base, T_gripper2base, myCameraRotation, myCameraTransform, 
+                     R_cam2gripper, T_cam2gripper, CALIB_HAND_EYE_TSAI);
+
+    cout << "手眼R矩阵：" << R_cam2gripper << endl;
+    cout << "手眼T矩阵：" << T_cam2gripper << endl;
 }
 
 bool HandEyeCalibration::ReadStringList(const string& filename, vector<string>& imagePath)
@@ -102,19 +112,38 @@ bool HandEyeCalibration::GetRobotPose(const char* robotPosePath)
             return false;
         }
 
-        for (const auto& w : words)
-        {
+        Mat Pose(1, 6, CV_64FC1);
+        Pose.at<double>(0, 0) = std::stod(words[0]);
+        Pose.at<double>(0, 1) = std::stod(words[1]);
+        Pose.at<double>(0, 2) = std::stod(words[2]);
+        Pose.at<double>(0, 3) = std::stod(words[3]);
+        Pose.at<double>(0, 4) = std::stod(words[4]);
+        Pose.at<double>(0, 5) = std::stod(words[5]);
 
-        }
+        myRobotPose.push_back(Pose);
     }
 
     file.close();  // 关闭文件（ifstream 析构时会自动关闭）
+
+    // 机器人姿态格式转换。
+    for (int i = 0; i < myRobotPose.size(); i++)
+    {
+        Mat tempR;
+        Mat tempT;
+        attitudeVector2Matrix(myRobotPose[i], tempR, tempT, true);
+
+        cout << "机器人R矩阵：" << tempR << endl;
+        cout << "机器人T矩阵：" << tempT << endl;
+
+        R_gripper2base.push_back(tempR);
+        T_gripper2base.push_back(tempT);
+    }
 
     return true;
 }
 
 bool HandEyeCalibration::GetCameraMatrix(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion, 
-    vector<cv::Mat> Rotation, vector<cv::Mat> Transform)
+    vector<cv::Mat> &Rotation, vector<cv::Mat> &Transform)
 {
     Settings setParam;
 
@@ -122,7 +151,7 @@ bool HandEyeCalibration::GetCameraMatrix(const char* imagePath, cv::Mat CameraMa
     bool bReadImageSuccess = ReadStringList(imagePath, setParam.imageList);
     if (!bReadImageSuccess)
     {
-        //PLOG_INFO << "Load image data failed!\n";
+        cout  << "Load image data failed!";
         return false;
     }
 
@@ -184,7 +213,6 @@ bool HandEyeCalibration::GetCameraMatrix(const char* imagePath, cv::Mat CameraMa
     std::vector<int> markerIds;
 
     vector<vector<cv::Point2f> > imagePoints;
-    cv::Mat cameraMatrix, distCoeffs;
     cv::Size imageSize;
     clock_t prevTimestamp = 0;
     const cv::Scalar RED(0, 0, 255), GREEN(0, 255, 0);
@@ -199,6 +227,7 @@ bool HandEyeCalibration::GetCameraMatrix(const char* imagePath, cv::Mat CameraMa
 
         if (view.empty())
         {
+            cout << "图像数据为空！" << endl;
             return false;
         }
 
@@ -269,15 +298,74 @@ bool HandEyeCalibration::GetCameraMatrix(const char* imagePath, cv::Mat CameraMa
         allObjectPoints.push_back(ObjectPoints);
 
         string strNum = to_string(nImageNum);
-        cv::imwrite("./output/Corners" + strNum + ".png", view);
+        cv::imwrite("./Output/Corners" + strNum + ".png", view);
         nImageNum++;
     }
 
     // Calibrate camera using ChArUco
-    double repError = calibrateCamera(allObjectPoints, allImagePoints, imageSize, cameraMatrix, distCoeffs,
-        Rotation, Transform, cv::noArray(), cv::noArray(), cv::noArray(), setParam.flag);
+    setParam.flag = CALIB_FIX_INTRINSIC;
+
+    vector<Point3f> newObjPoints;
+    double repError = calibrateCameraRO(allObjectPoints, allImagePoints, imageSize, -1, CameraMatrix, CameraDistortion,
+        Rotation, Transform, newObjPoints, setParam.flag);
+
+    cout << "相机内参：" << CameraMatrix << endl;
+    cout << "相机畸变系数：" << CameraDistortion << endl;
+    cout << "标定重投影误差：" << repError << endl;
+
 
     return true;
+}
+bool HandEyeCalibration::attitudeVector2Matrix(Mat m, Mat &R, Mat &T, bool isEuler)
+{
+    R = Mat::eye(3, 3, CV_64FC1);
+    T = Mat::eye(3, 1, CV_64FC1);
+
+    if (m.empty())
+    {
+        cout << "矩阵为空！！！" << endl;
+        return false;
+    }
+
+    Mat rotation(3, 1, CV_64FC1);
+
+    rotation.at<double>(0, 0) = m.at<double>(0, 3);
+    rotation.at<double>(1, 0) = m.at<double>(0, 4);
+    rotation.at<double>(2, 0) = m.at<double>(0, 5);
+
+    // 欧拉角
+    if (isEuler)
+    {
+        R = EulerToRotationMatrix(rotation.at<double>(0, 0), rotation.at<double>(1, 0), rotation.at<double>(2, 0));
+    }
+    else
+    {
+        // 旋转向量。
+        Rodrigues(rotation, R);
+    }
+
+    T.at<double>(0, 0) = m.at<double>(0, 0);
+    T.at<double>(1, 0) = m.at<double>(0, 1);
+    T.at<double>(2, 0) = m.at<double>(0, 2);
+
+    return true;
+}
+Mat HandEyeCalibration::EulerToRotationMatrix(double pitch, double yaw, double roll)
+{
+
+    pitch /= 180 / PI;
+    yaw /= 180 / PI;
+    roll /= 180 / PI;
+
+    // 计算各轴旋转矩阵
+    Mat Rx = (Mat_<double>(3, 3) << 1, 0, 0, 0, cos(pitch), -sin(pitch), 0, sin(pitch), cos(pitch));
+    Mat Ry = (Mat_<double>(3, 3) << cos(yaw), 0, sin(yaw), 0, 1, 0, -sin(yaw), 0, cos(yaw));
+    Mat Rz = (Mat_<double>(3, 3) << cos(roll), -sin(roll), 0, sin(roll), cos(roll), 0, 0, 0, 1);
+
+    // 组合顺序（假设为 xyz）
+    Mat R = Rz * Ry * Rx;
+
+    return R;
 }
 
 IInterface* IInterface::CreateInterface()
