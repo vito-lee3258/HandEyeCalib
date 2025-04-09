@@ -75,6 +75,10 @@
     <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
     <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -142,6 +146,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>opencv_world480.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

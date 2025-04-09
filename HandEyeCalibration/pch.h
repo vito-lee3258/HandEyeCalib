@@ -3,34 +3,63 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define FENGZHUANGCPP_API __declspec(dllexport) //导出
 
-#pragma pack(push, 1)//确保内存对齐一致
-struct CameraInstrinsic
-{
-	double Fx;
-	double Fy;
-	double Cx;
-	double Cy;
+#include <stdio.h>
 
-	double K1;
-	double K2;
-	double P1;
-	double P2;
-	double K3;
-};
-#pragma pack(pop)
+extern "C" {
+	struct Point1
+	{
+		int x;
+		int y;
+	};
 
-//动态链接库
-class FENGZHUANGCPP_API IInterface
-{
-public:
-	static IInterface* CreateInterface();
-	virtual void Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, CameraInstrinsic* CameraMatrix) = 0;
-};
+	struct CameraInstrinsic
+	{
+		double Fx;
+		double Fy;
+		double Cx;
+		double Cy;
 
-extern "C" __declspec(dllexport) void RunHandEyeCalib(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, CameraInstrinsic* CameraMatrix)
-{
-	IInterface* HandEyeCalib = IInterface::CreateInterface();
+		double K1;
+		double K2;
+		double P1;
+		double P2;
+		double K3;
+	};
 
-	HandEyeCalib->Run(imagePath, pointCloudPath, robotPosePath, CameraMatrix);
+	struct GeneralHandEyeResult
+	{
+		double matrix[16];
+
+		double marker_in_base_xyz[3];
+
+		double RMS;
+	};
+
+	__declspec(dllexport) int __stdcall Add(int a, int b)
+	{
+		return a + b;
+	}
+
+	__declspec(dllexport) void __cdecl PrintMessage(const char* message)
+	{
+		printf("%s\n", message);
+	}
+
+	__declspec(dllexport) void __stdcall MovePoint(Point1* p, int dx, int dy)
+	{
+		p->x += dx;
+		p->y += dy;
+	}
+
+	__declspec(dllexport) void __stdcall ConvertToGray(const char* inputPath, const char* outputPath);
+
+	__declspec(dllexport) void __stdcall GetCameraIntrinsic(CameraInstrinsic* cameraIntrinsic);
+
+	__declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath);
+
+	__declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, 
+		GeneralHandEyeResult* CalibResult);
+
 }
+
 #endif //PCH_H

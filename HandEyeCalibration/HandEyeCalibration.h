@@ -27,14 +27,13 @@ public:
     enum InputType { INVALID, CAMERA, VIDEO_FILE, IMAGE_LIST };
 
     int boardWidth = 8;
-    int boardHeight = 11;
+    int boardHeight = 8;
     //cv::Size boardSize(8, 11);
-    Pattern calibrationPattern = Settings::CHARUCOBOARD;  // One of the Chessboard, ChArUco board, circles, or asymmetric circle pattern
-    float squareSize = 20;            // The size of a square in your defined unit (point, millimeter,etc).
+    Pattern calibrationPattern = Settings::CHESSBOARD;  // One of the Chessboard, ChArUco board, circles, or asymmetric circle pattern
+    float squareSize = 18;            // The size of a square in your defined unit (point, millimeter,etc).
     float markerSize = 10;            // The size of a marker in your defined unit (point, millimeter,etc).
-    string arucoDictName = "DICT_4X4_50";        // The Name of ArUco dictionary which you use in ChArUco pattern
+    string arucoDictName = "DICT_4X4_1000";        // The Name of ArUco dictionary which you use in ChArUco pattern
     string arucoDictFileName;    // The Name of file which contains ArUco dictionary for ChArUco pattern
-    int nrFrames;                // The number of frames to use from the input for calibration
     float aspectRatio;           // The aspect ratio
     int delay;                   // In case of a video input
     bool calibZeroTangentDist;   // Assume zero tangential distortion
@@ -60,44 +59,31 @@ private:
     string patternToUse;
 };
 
-class HandEyeCalibration : public IInterface
-{
-public:
-	// 构造函数。
-	HandEyeCalibration();
+Mat cameraMatrix(3, 3, CV_32FC1);
+Mat distortion(1, 5, CV_32FC1);
 
-	// 析构函数。
-	~HandEyeCalibration();
+const double PI = 3.14159265358979323846;  // 精确到18位小数
 
-	// 接口函数。
-	virtual void Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, CameraInstrinsic* CameraMatrix);
+vector<Mat> myRobotPose;
+vector<Mat> myCameraRotation;
+vector<Mat> myCameraTransform;
+vector<Mat> R_gripper2base;
+vector<Mat> T_gripper2base;
 
-	static void GetTime(string timeStamp)
-	{
-		time_t now = time(nullptr);  // 获取自1970年以来的秒数（UTC时间戳）
-		tm* local = localtime(&now); // 转换为本地时间结构体
+bool ReadStringList(const string& filename, vector<string>& l);
 
-		// 自定义格式化输出
-		char time[80];
-		strftime(time, 80, "%Y-%m-%d %H:%M:%S", local);
-		std::cout << "格式化时间: " << time << std::endl;
+bool GetRobotPose(const char* robotPosePath);
 
-		timeStamp = time;
-	}
+void calcBoardCornerPositions(Size boardSize, float squareSize, vector<Point3f>& corners,
+    Settings::Pattern patternType /*= Settings::CHESSBOARD*/);
 
-    bool ReadStringList(const string& filename, vector<string>& l);
-	bool GetRobotPose(const char* robotPosePath);
-	bool GetCameraMatrix(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion, vector<cv::Mat> &Rotation, vector<cv::Mat> &Transform);
-    bool attitudeVector2Matrix(Mat m, Mat &R, Mat &T, bool isEuler);
-    Mat EulerToRotationMatrix(double pitch, double yaw, double roll);
-private:
-    const double PI = 3.14159265358979323846;  // 精确到18位小数
+bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion,
+    vector<cv::Mat>& Rotation, vector<cv::Mat>& Transform, double& RMS);
 
-	vector<Mat> myRobotPose;
-    vector<Mat> myCameraRotation;
-    vector<Mat> myCameraTransform;
-    vector<Mat> R_gripper2base;
-    vector<Mat> T_gripper2base;
+bool GetCameraMatrixAruco(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion,
+    vector<cv::Mat>& Rotation, vector<cv::Mat>& Transform, double& RMS);
 
-};
+bool attitudeVector2Matrix(Mat m, Mat& R, Mat& T, bool isEuler);
+
+Mat EulerToRotationMatrix(double pitch, double yaw, double roll);
 
