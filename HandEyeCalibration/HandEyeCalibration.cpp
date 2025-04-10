@@ -60,7 +60,7 @@ __declspec(dllexport) void __stdcall GetCameraIntrinsic(CameraInstrinsic* camera
     cout << "标定前畸变系数：" << distortion << endl;
 }
 
-__declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath)
+__declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath, CornersPoints* corners)
 {
     Settings setParam;
 
@@ -167,22 +167,28 @@ __declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath)
         break;
     }
 
-
     // find image corners.
     if (found)                // If done with success,
     {
-        Mat dst;
+        // 获取相机角点。
+        corners->corner_point_0[0] = pointBuf[0].x;
+        corners->corner_point_0[1] = pointBuf[0].y;
 
+        corners->corner_point_1[0] = pointBuf[1].x;
+        corners->corner_point_1[1] = pointBuf[1].y;
+
+        Mat dst;
         Point position;
+
+        cv::String text = "Point 1";
         position.x = pointBuf[0].x;
         position.y = pointBuf[0].y;
-        cv::String text = "Point 1";
-        putText(view, text, position, FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 255, 0), 2);
-        circle(view, position, 10, Scalar(0, 255, 0), -1); // 红色空心圆
+        putText(view, text, Size(position.x - 10, position.y - 10), FONT_HERSHEY_COMPLEX_SMALL, 1.0, Scalar(0, 255, 0), 2);
+        circle(view, position, 10, Scalar(0, 255, 0), -1, LINE_8); 
 
-        Size newSize(view.cols / 2, view.rows / 2);
+        Size newSize(800, 600);
         drawChessboardCorners(view, boardSize, cv::Mat(pointBuf), found);
-        resize(view, dst, newSize, 0.0, 0.0, INTER_LINEAR);
+        resize(view, dst, newSize, 0.0, 0.0, INTER_CUBIC);
 
         while (true)
         {
@@ -202,8 +208,31 @@ __declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath)
 }
 
 __declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath,
-    GeneralHandEyeResult* CalibResult)
+                                       CameraInstrinsic* cameraIntrinsic, GeneralHandEyeResult* CalibResult)
 {
+    // 获取相机内参。
+    cameraMatrix.at<float>(0, 0) = cameraIntrinsic->Fx;
+    cameraMatrix.at<float>(0, 1) = 0;
+    cameraMatrix.at<float>(0, 2) = cameraIntrinsic->Cx;
+
+    cameraMatrix.at<float>(1, 0) = 0;
+    cameraMatrix.at<float>(1, 1) = cameraIntrinsic->Fy;
+    cameraMatrix.at<float>(1, 2) = cameraIntrinsic->Cy;
+
+    cameraMatrix.at<float>(2, 0) = 0;
+    cameraMatrix.at<float>(2, 1) = 0;
+    cameraMatrix.at<float>(2, 2) = 1;
+
+    // 获取畸变系数。
+    distortion.at<float>(0, 0) = cameraIntrinsic->K1;
+    distortion.at<float>(0, 1) = cameraIntrinsic->K2;
+    distortion.at<float>(0, 2) = cameraIntrinsic->P1;
+    distortion.at<float>(0, 3) = cameraIntrinsic->P2;
+    distortion.at<float>(0, 4) = cameraIntrinsic->K3;
+
+    cout << "标定前相机内参：" << cameraMatrix << endl;
+    cout << "标定前畸变系数：" << distortion << endl;
+
     double RMS = 0;
 	bool bGetCamMatrixSuccess = GetCameraMatrixChessboard(imagePath, cameraMatrix, distortion, myCameraRotation, myCameraTransform, RMS);
     if (!bGetCamMatrixSuccess)
@@ -330,6 +359,8 @@ bool GetRobotPose(const char* robotPosePath)
         Pose.at<double>(0, 3) = std::stod(words[3]);
         Pose.at<double>(0, 4) = std::stod(words[4]);
         Pose.at<double>(0, 5) = std::stod(words[5]);
+
+        //cout << Pose.at<double>(0, 0) << " " << Pose.at<double>(0, 1) << " " << Pose.at<double>(0, 2) << " " << Pose.at<double>(0, 3) << " " << Pose.at<double>(0, 4) << " " << Pose.at<double>(0, 5) << endl;
 
         myRobotPose.push_back(Pose);
     }
@@ -641,11 +672,6 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
         nImageNum++;
     }
 
-    // Calibrate camera using ChArUco
-    int flag = 0;
-    flag |= CALIB_FIX_PRINCIPAL_POINT;
-    flag |= CALIB_FIX_FOCAL_LENGTH;
-
     // 计算相机坐标系的点坐标。
     vector<vector<Point3f> > objectPoints(1);
     cv::Size sBoardSize(setParam.boardWidth, setParam.boardHeight);
@@ -662,18 +688,29 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
 
     objectPoints.resize(allImagePoints.size(), objectPoints[0]);
 
+    cout << "标定前的内参：" << endl;
+    cout << "相机内参：" << CameraMatrix << endl;
+    cout << "相机畸变系数：" << CameraDistortion << endl;
+
+    // Calibrate camera using ChArUco
+    int flag = 0;
+    //flag |= CALIB_FIX_PRINCIPAL_POINT;
+    //flag |= CALIB_FIX_FOCAL_LENGTH;
+
+    Mat camIntrinsic;
+    Mat camDistortion;
     RMS = calibrateCameraRO(objectPoints, allImagePoints, imageSize, -1, CameraMatrix, CameraDistortion,
         Rotation, Transform, newObjPoints, flag);
 
+    cout << "标定后的内参：" << endl;
     cout << "相机内参：" << CameraMatrix << endl;
     cout << "相机畸变系数：" << CameraDistortion << endl;
     cout << "标定重投影误差：" << RMS << endl;
 
-
     return true;
 }
 void calcBoardCornerPositions(Size boardSize, float squareSize, vector<Point3f>& corners,
-    Settings::Pattern patternType /*= Settings::CHESSBOARD*/)
+    Settings::Pattern patternType)
 {
     corners.clear();
 

@@ -30,9 +30,17 @@ extern "C" {
 	{
 		double matrix[16];
 
-		double marker_in_base_xyz[3];
+		double corner_in_base_xyz[3];
 
 		double RMS;
+	};
+
+	struct CornersPoints
+	{
+		double corner_point_0[2];
+		double corner_point_1[2];
+		double corner_point_57[2];
+		double corner_point_63[2];
 	};
 
 	__declspec(dllexport) int __stdcall Add(int a, int b)
@@ -55,10 +63,10 @@ extern "C" {
 
 	__declspec(dllexport) void __stdcall GetCameraIntrinsic(CameraInstrinsic* cameraIntrinsic);
 
-	__declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath);
+	__declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath, CornersPoints* corners);
 
 	__declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, 
-		GeneralHandEyeResult* CalibResult);
+									   CameraInstrinsic* cameraIntrinsic, GeneralHandEyeResult* CalibResult);
 
 }
 

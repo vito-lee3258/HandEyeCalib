@@ -10,9 +10,9 @@ using namespace std;
 
 int main()
 {
-    const char* imagePath = "./Data/Image.txt";
-    const char* pointCloudPath = ".\\Data\\";
-    const char* robotPosePath = "./Data/Pose.txt";
+    const char* imagePath = "./Data/HandEyeCalibrationData/Image.txt";
+    const char* pointCloudPath = "./HandEyeCalibrationData/";
+    const char* robotPosePath = "./Data/HandEyeCalibrationData/Pose.txt";
 
     CameraInstrinsic cameraMatrix;
     cameraMatrix.Fx = 1575.8350830078125;
@@ -26,10 +26,11 @@ int main()
     cameraMatrix.P2 = -0.0001548736;
     cameraMatrix.K3 = -0.000862356;
 
-    CornerDetection("./Data/0.png");
+    CornersPoints corners;
+    CornerDetection("./Data/HandEyeCalibrationData/0.png", &corners);
 
     GeneralHandEyeResult CalibResult;
-    Run(imagePath, pointCloudPath, robotPosePath, &CalibResult);
+    Run(imagePath, pointCloudPath, robotPosePath, &cameraMatrix , &CalibResult);
 
     return 0;
 }
