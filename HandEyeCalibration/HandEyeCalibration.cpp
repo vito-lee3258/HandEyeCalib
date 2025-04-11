@@ -136,14 +136,8 @@ __declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath, Corn
     }
 
     imageSize = view.size();  // Format input image.
-    if (setParam.flipVertical)    flip(view, view, 0);
 
     int chessBoardFlags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE;
-
-    if (!setParam.useFisheye) {
-        // fast check erroneously fails with high distortions like fisheye
-        chessBoardFlags |= cv::CALIB_CB_FAST_CHECK;
-    }
 
     bool found;
     vector<cv::Point2f> pointBuf;
@@ -269,17 +263,17 @@ __declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointC
     cout << "手眼T矩阵：" << T_cam2gripper << endl;
 
     CalibResult->matrix[0] = R_cam2gripper.at<double>(0, 0);
-    CalibResult->matrix[1] = R_cam2gripper.at<double>(0, 1);
-    CalibResult->matrix[2] = R_cam2gripper.at<double>(0, 2);
+    CalibResult->matrix[1] = R_cam2gripper.at<double>(1, 0);
+    CalibResult->matrix[2] = R_cam2gripper.at<double>(2, 0);
     CalibResult->matrix[3] = T_cam2gripper.at<double>(0, 0);
 
-    CalibResult->matrix[4] = R_cam2gripper.at<double>(1, 0);
+    CalibResult->matrix[4] = R_cam2gripper.at<double>(0, 1);
     CalibResult->matrix[5] = R_cam2gripper.at<double>(1, 1);
-    CalibResult->matrix[6] = R_cam2gripper.at<double>(1, 2);
+    CalibResult->matrix[6] = R_cam2gripper.at<double>(2, 1);
     CalibResult->matrix[7] = T_cam2gripper.at<double>(1, 0);
 
-    CalibResult->matrix[8] = R_cam2gripper.at<double>(2, 0);
-    CalibResult->matrix[9] = R_cam2gripper.at<double>(2, 1);
+    CalibResult->matrix[8] = R_cam2gripper.at<double>(0, 2);
+    CalibResult->matrix[9] = R_cam2gripper.at<double>(1, 2);
     CalibResult->matrix[10] = R_cam2gripper.at<double>(2, 2);
     CalibResult->matrix[11] = T_cam2gripper.at<double>(2, 0);
 
@@ -313,11 +307,18 @@ bool ReadStringList(const string& filename, vector<string>& imagePath)
         return false;
     }
 
+    int nLineNum = 0;
     std::string line;
     while (std::getline(file, line)) { // 逐行读取
         stringstream ss(line);
 
         imagePath.push_back(line);
+        nLineNum++;
+    }
+
+    if (nLineNum < 8)
+    {
+        return false;
     }
 
     file.close();  // 关闭文件（ifstream 析构时会自动关闭）
@@ -359,8 +360,6 @@ bool GetRobotPose(const char* robotPosePath)
         Pose.at<double>(0, 3) = std::stod(words[3]);
         Pose.at<double>(0, 4) = std::stod(words[4]);
         Pose.at<double>(0, 5) = std::stod(words[5]);
-
-        //cout << Pose.at<double>(0, 0) << " " << Pose.at<double>(0, 1) << " " << Pose.at<double>(0, 2) << " " << Pose.at<double>(0, 3) << " " << Pose.at<double>(0, 4) << " " << Pose.at<double>(0, 5) << endl;
 
         myRobotPose.push_back(Pose);
     }
@@ -476,14 +475,7 @@ bool GetCameraMatrixAruco(const char* imagePath, cv::Mat CameraMatrix, cv::Mat C
         }
 
         imageSize = view.size();  // Format input image.
-        if (setParam.flipVertical)    flip(view, view, 0);
-
         int chessBoardFlags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE;
-
-        if (!setParam.useFisheye) {
-            // fast check erroneously fails with high distortions like fisheye
-            chessBoardFlags |= cv::CALIB_CB_FAST_CHECK;
-        }
 
         bool found;
         vector<cv::Point2f> pointBuf;
@@ -546,8 +538,6 @@ bool GetCameraMatrixAruco(const char* imagePath, cv::Mat CameraMatrix, cv::Mat C
         int nSize = markerIds.size();
         putText(view, to_string(markerIds[0]), ImagePoints[0], FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
         putText(view, to_string(markerIds[6]), ImagePoints[6], FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
-        //putText(view, to_string(markerIds[63]), ImagePoints[63], FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
-        //putText(view, to_string(markerIds[69]), ImagePoints[69], FONT_HERSHEY_SIMPLEX, 1.0, Scalar(0, 0, 255), 2);
 
         allImagePoints.push_back(ImagePoints);
         allObjectPoints.push_back(ObjectPoints);
@@ -613,14 +603,8 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
         }
 
         imageSize = view.size();  // Format input image.
-        if (setParam.flipVertical)    flip(view, view, 0);
 
         int chessBoardFlags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE;
-
-        if (!setParam.useFisheye) {
-            // fast check erroneously fails with high distortions like fisheye
-            chessBoardFlags |= cv::CALIB_CB_FAST_CHECK;
-        }
 
         bool found;
         vector<cv::Point2f> pointBuf;
