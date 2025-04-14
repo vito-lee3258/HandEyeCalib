@@ -245,10 +245,10 @@ __declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointC
     Mat R_cam2gripper(3, 3, CV_64FC1);
     Mat T_cam2gripper(3, 1, CV_64FC1);
 
-    cout << "机器人R矩阵大小：" << R_gripper2base.size() << endl;
-    cout << "机器人T矩阵大小：" << T_gripper2base.size() << endl;
-    cout << "相机R矩阵大小：" << myCameraRotation.size() << endl;
-    cout << "相机T矩阵大小：" << myCameraTransform.size() << endl;
+    //cout << "机器人R矩阵大小：" << R_gripper2base.size() << endl;
+    //cout << "机器人T矩阵大小：" << T_gripper2base.size() << endl;
+    //cout << "相机R矩阵大小：" << myCameraRotation.size() << endl;
+    //cout << "相机T矩阵大小：" << myCameraTransform.size() << endl;
 
     if (R_gripper2base.size() != myCameraRotation.size())
     {
@@ -257,7 +257,7 @@ __declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointC
     }
 
     calibrateHandEye(R_gripper2base, T_gripper2base, myCameraRotation, myCameraTransform, 
-                     R_cam2gripper, T_cam2gripper, CALIB_HAND_EYE_PARK);
+                     R_cam2gripper, T_cam2gripper, CALIB_HAND_EYE_TSAI);
 
     cout << "手眼R矩阵：" << R_cam2gripper << endl;
     cout << "手眼T矩阵：" << T_cam2gripper << endl;
@@ -374,9 +374,6 @@ bool GetRobotPose(const char* robotPosePath)
         Mat tempR;
         Mat tempT;
         attitudeVector2Matrix(myRobotPose[i], tempR, tempT, true);
-
-        cout << "机器人R矩阵：" << tempR << endl;
-        cout << "机器人T矩阵：" << tempT << endl;
 
         R_gripper2base.push_back(tempR);
         T_gripper2base.push_back(tempT);
@@ -678,8 +675,9 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
 
     // Calibrate camera using ChArUco
     int flag = 0;
+    flag |= CALIB_USE_INTRINSIC_GUESS;
+    //flag |= CALIB_FIX_ASPECT_RATIO;
     //flag |= CALIB_FIX_PRINCIPAL_POINT;
-    //flag |= CALIB_FIX_FOCAL_LENGTH;
 
     Mat camIntrinsic;
     Mat camDistortion;
