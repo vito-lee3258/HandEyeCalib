@@ -1,5 +1,8 @@
 ﻿#include "pch.h"
 #include "HandEyeCalibration.h"
+#include "area_scan_3d_camera/HandEyeCalibration.h"
+#include "area_scan_3d_camera/Camera.h"
+#include "area_scan_3d_camera/api_util.h"
 
 
 //HandEyeCalibration::HandEyeCalibration()
@@ -135,6 +138,8 @@ __declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath, Corn
         return false;
     }
 
+    bitwise_not(view, view);
+
     imageSize = view.size();  // Format input image.
 
     int chessBoardFlags = cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE;
@@ -184,14 +189,9 @@ __declspec(dllexport) bool __stdcall CornerDetection(const char* inputPath, Corn
         drawChessboardCorners(view, boardSize, cv::Mat(pointBuf), found);
         resize(view, dst, newSize, 0.0, 0.0, INTER_CUBIC);
 
-        while (true)
-        {
-            imshow("Corners", dst);
-            if (waitKey() == 27)
-                break;
-        }
-
-        destroyAllWindows();
+        imshow("Corners", dst);
+        cv::waitKey(0);
+        cv::destroyAllWindows();
     }
     else
     {
@@ -283,6 +283,196 @@ __declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointC
     CalibResult->matrix[15] = 1;
 
     return true;
+}
+
+// 梅卡曼德相机手眼标定库。
+
+__declspec(dllexport) bool __stdcall InitCamera()
+{
+    mmind::eye::HandEyeCalibration::CalibrationBoardModel boardModel = mmind::eye::HandEyeCalibration::CalibrationBoardModel::CGB_20;
+    mmind::eye::HandEyeCalibration::CameraMountingMode mountingMode = mmind::eye::HandEyeCalibration::CameraMountingMode::EyeInHand;
+
+    std::cout << "相机挂载方式：" << (int)mountingMode << endl;
+
+    if (!findAndConnect(camera))
+        return false;
+
+    showError(calibration.initializeCalibration(camera, mountingMode, boardModel));
+}
+
+__declspec(dllexport) bool __stdcall GetPatternImage()
+{
+    mmind::eye::Color2DImage color2DImage;
+    showError(calibration.testRecognition(camera, color2DImage));
+    if (!color2DImage.isEmpty()) {
+        std::string colorFile =
+            "./Output/FeatureRecognitionResultForTest_" + std::to_string(poseIndex);
+        colorFile += ".png";
+        cv::Mat testImg = cv::Mat(color2DImage.height(), color2DImage.width(), CV_8UC3,
+            color2DImage.data());
+
+        // 图像增强。
+        ImageEnhance(testImg);
+
+        cv::namedWindow("Feature Recognition Result", 0);
+        cv::resizeWindow("Feature Recognition Result", 800, 600); cv::imshow("Feature Recognition Result", testImg);
+        std::cout << "Press any key to close the image." << std::endl;
+        cv::waitKey(0);
+        cv::destroyAllWindows();
+        cv::imwrite(colorFile, testImg);
+        std::cout << "Save the image to file " << colorFile << std::endl;
+    }
+
+    return true;
+}
+
+__declspec(dllexport) bool __stdcall AddRobotPose(double x, double y, double z, double rx, double ry, double rz)
+{
+    mmind::eye::HandEyeCalibration::Transformation robotPose = GetRobotPose(x, y, z, rx, ry, rz);
+
+    mmind::eye::Color2DImage color2DImage;
+    auto errStatus = calibration.addPoseAndDetect(camera, robotPose, color2DImage);
+    showError(errStatus);
+    if (!color2DImage.isEmpty()) {
+        std::string colorFile = "./Output/FeatureRecognitionResult_" + std::to_string(poseIndex);
+        colorFile += ".png";
+        cv::Mat testImg = cv::Mat(color2DImage.height(), color2DImage.width(), CV_8UC3,
+            color2DImage.data());
+        //                cv::namedWindow("Feature Recognition Result", 0);
+        //                cv::resizeWindow("Feature Recognition Result",
+        //                color2DImage.width() / 2,
+        //                                 color2DImage.height() / 2);
+        //                cv::imshow("Feature Recognition Result", testImg);
+        //                std::cout << "Press any key to close the image." << std::endl;
+        //                cv::waitKey(0);
+        //                cv::destroyAllWindows();
+        cv::imwrite(colorFile, testImg);
+        std::cout << "Save the image to file " << colorFile << std::endl;
+        std::cout << "Successfully added the pose." << std::endl;
+    }
+    if (errStatus.isOK()) {
+        poseIndex++;
+    }
+
+    return true;
+}
+
+__declspec(dllexport) bool __stdcall Calibrate(GeneralHandEyeResult* CalibResult)
+{
+    mmind::eye::ErrorStatus status = calibration.calculateExtrinsics(camera, cameraToBase);
+    showError(status);
+    if (status.isOK()) {
+
+        CalibResult->HandEyeMatrix[0] = cameraToBase.x;
+        CalibResult->HandEyeMatrix[1] = cameraToBase.y;
+        CalibResult->HandEyeMatrix[2] = cameraToBase.z;
+        CalibResult->HandEyeMatrix[3] = cameraToBase.qX;
+        CalibResult->HandEyeMatrix[4] = cameraToBase.qY;
+        CalibResult->HandEyeMatrix[5] = cameraToBase.qZ;
+        CalibResult->HandEyeMatrix[6] = cameraToBase.qW;
+
+        std::cout << "The extrinsic parameters are:" << std::endl;
+        std::cout << cameraToBase.toString() << std::endl;
+        saveExtrinsicParameters(cameraToBase.toString());
+    }
+    else
+    {
+        camera.disconnect();
+        std::cout << "Disconnected from the camera successfully." << std::endl;
+
+        return false;
+    }
+    camera.disconnect();
+    std::cout << "Disconnected from the camera successfully." << std::endl;
+
+    return true;
+}
+
+// Save extrinsic parameters to a TXT file named "ExtrinsicParameters (+time stamp)".
+void saveExtrinsicParameters(const std::string& ExtrinsicParameters)
+{
+    char pStrPath1[1024];
+
+    sprintf_s(pStrPath1, "ExtrinsicParameters.txt");
+
+    //sprintf_s(pStrPath1, "ExtrinsicParameters%d%02d%02d%02d%02d%02d.txt", now);
+    std::ofstream out(pStrPath1);
+    out << "ExtrinsicParameters:" << std::endl;
+    out << ExtrinsicParameters;
+    out.close();
+    std::cout << "Save result in file " << pStrPath1 << std::endl;
+}
+
+mmind::eye::HandEyeCalibration::Transformation GetRobotPose(double x, double y, double z, double rx, double ry, double rz)
+{
+    return EulerToQuad(5, x, y, z, rx, ry, rz);
+}
+// Convert Euler angles to quaternions. The unit of Euler angles is degree.
+mmind::eye::HandEyeCalibration::Transformation EulerToQuad(int eulerType, double x, double y,
+    double z, double R1, double R2, double R3)
+{
+    auto a1 = (R1 * PI / 180) / 2;
+    auto a2 = (R2 * PI / 180) / 2;
+    auto a3 = (R3 * PI / 180) / 2;
+    double quadW = 0.0;
+    double quadX = 0.0;
+    double quadY = 0.0;
+    double quadZ = 0.0;
+    switch (eulerType) {
+    case 1: // Z-Y'-X''
+        quadW = sin(a1) * sin(a2) * sin(a3) + cos(a1) * cos(a2) * cos(a3);
+        quadX = -sin(a1) * sin(a2) * cos(a3) + sin(a3) * cos(a1) * cos(a2);
+        quadY = sin(a1) * sin(a3) * cos(a2) + sin(a2) * cos(a1) * cos(a3);
+        quadZ = sin(a1) * cos(a2) * cos(a3) - sin(a2) * sin(a3) * cos(a1);
+        break;
+
+    case 2: // Z-Y'-Z''
+        quadW = cos(a2) * cos(a1 + a3);
+        quadX = -sin(a2) * sin(a1 - a3);
+        quadY = sin(a2) * cos(a1 - a3);
+        quadZ = cos(a2) * sin(a1 + a3);
+        break;
+
+    case 3: // X-Y'-Z''
+        quadW = -sin(a1) * sin(a2) * sin(a3) + cos(a1) * cos(a2) * cos(a3);
+        quadX = sin(a1) * cos(a2) * cos(a3) + sin(a2) * sin(a3) * cos(a1);
+        quadY = -sin(a1) * sin(a3) * cos(a2) + sin(a2) * cos(a1) * cos(a3);
+        quadZ = sin(a1) * sin(a2) * cos(a3) + sin(a3) * cos(a1) * cos(a2);
+        break;
+
+    case 4: // Z-X'-Z''
+        quadW = cos(a2) * cos(a1 + a3);
+        quadX = sin(a2) * cos(a1 - a3);
+        quadY = sin(a2) * sin(a1 - a3);
+        quadZ = cos(a2) * sin(a1 + a3);
+        break;
+
+    case 5: // X-Y-Z
+        a1 = (R3 * PI / 180) / 2;
+        a2 = (R2 * PI / 180) / 2;
+        a3 = (R1 * PI / 180) / 2;
+        quadW = sin(a1) * sin(a2) * sin(a3) + cos(a1) * cos(a2) * cos(a3);
+        quadX = -sin(a1) * sin(a2) * cos(a3) + sin(a3) * cos(a1) * cos(a2);
+        quadY = sin(a1) * sin(a3) * cos(a2) + sin(a2) * cos(a1) * cos(a3);
+        quadZ = sin(a1) * cos(a2) * cos(a3) - sin(a2) * sin(a3) * cos(a1);
+        break;
+
+    default:
+
+        break;
+    }
+    std::string split = ",";
+    std::string quadResult = std::to_string(x) + split + std::to_string(y) + split +
+        std::to_string(z) + split + std::to_string(quadW) + split +
+        std::to_string(quadX) + split + std::to_string(quadY) + split +
+        std::to_string(quadZ);
+    std::string eulerResult = std::to_string(x) + split + std::to_string(y) + split +
+        std::to_string(z) + split + std::to_string(R1) + split +
+        std::to_string(R2) + split + std::to_string(R3);
+    std::cout << "\nThe entered pose is: \n" << eulerResult << std::endl;
+    std::cout << "The converted pose (Euler angles --> quaternions) is: \n"
+        << quadResult << std::endl;
+    return mmind::eye::HandEyeCalibration::Transformation(x, y, z, quadW, quadX, quadY, quadZ);
 }
 
 void GetTime(string timeStamp)
@@ -560,6 +750,7 @@ bool GetCameraMatrixAruco(const char* imagePath, cv::Mat CameraMatrix, cv::Mat C
 
     return true;
 }
+
 bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion,
     vector<cv::Mat>& Rotation, vector<cv::Mat>& Transform, double& RMS)
 {
@@ -691,6 +882,7 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
 
     return true;
 }
+
 void calcBoardCornerPositions(Size boardSize, float squareSize, vector<Point3f>& corners,
     Settings::Pattern patternType)
 {
@@ -724,6 +916,44 @@ void calcBoardCornerPositions(Size boardSize, float squareSize, vector<Point3f>&
         break;
     }
 }
+
+void ImageEnhance(Mat image)
+{
+    // 图像增强。
+    int nWidth = image.cols;
+    int nHeight = image.rows;
+
+    int ptNum = 0;
+    int RedPointsX = 0;
+    int RedPointsY = 0;
+    for (int y = 0; y < nHeight; y++)
+    {
+        for (int x = 0; x < nWidth; x++)
+        {
+            int B = image.at<Vec3b>(y, x)[0];
+            int G = image.at<Vec3b>(y, x)[1];
+            int R = image.at<Vec3b>(y, x)[2];
+            if (B == 0 && G == 0 && R == 255)
+            {
+                RedPointsX += x;
+                RedPointsY += y;
+                ptNum++;
+            }
+        }
+    }
+
+    // 定义圆心坐标（图像中心）、半径和颜色（红色）
+    Point center;
+    center.x = RedPointsX / ptNum;
+    center.y = RedPointsY / ptNum;
+
+    int radius = 8;
+    Scalar color(0, 0, 255); // BGR 格式，红色
+
+    // 绘制实心圆（厚度设为 -1 表示填充）
+    circle(image, center, radius, color, -1);
+}
+
 bool attitudeVector2Matrix(Mat m, Mat &R, Mat &T, bool isEuler)
 {
     R = Mat::eye(3, 3, CV_64FC1);
@@ -758,6 +988,7 @@ bool attitudeVector2Matrix(Mat m, Mat &R, Mat &T, bool isEuler)
 
     return true;
 }
+
 Mat EulerToRotationMatrix(double pitch, double yaw, double roll)
 {
 

@@ -33,6 +33,8 @@ extern "C" {
 		double corner_in_base_xyz[3];
 
 		double RMS;
+
+		double HandEyeMatrix[7];// x, y, z, qx, qy, qz, qw.
 	};
 
 	struct CornersPoints
@@ -59,6 +61,7 @@ extern "C" {
 		p->y += dy;
 	}
 
+	// OpenCV算法库。
 	__declspec(dllexport) void __stdcall ConvertToGray(const char* inputPath, const char* outputPath);
 
 	__declspec(dllexport) void __stdcall GetCameraIntrinsic(CameraInstrinsic* cameraIntrinsic);
@@ -68,6 +71,14 @@ extern "C" {
 	__declspec(dllexport) bool __cdecl Run(const char* imagePath, const char* pointCloudPath, const char* robotPosePath, 
 									   CameraInstrinsic* cameraIntrinsic, GeneralHandEyeResult* CalibResult);
 
+	// 梅卡手眼标定库。
+	__declspec(dllexport) bool __stdcall InitCamera();
+
+	__declspec(dllexport) bool __stdcall GetPatternImage();
+
+	__declspec(dllexport) bool __stdcall AddRobotPose(double x, double y, double z, double rx, double ry, double rz);
+
+	__declspec(dllexport) bool __stdcall Calibrate(GeneralHandEyeResult* CalibResult);
 }
 
 #endif //PCH_H

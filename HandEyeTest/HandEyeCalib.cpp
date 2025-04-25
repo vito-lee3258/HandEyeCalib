@@ -27,10 +27,20 @@ int main()
     cameraMatrix.K3 = -0.000862356;
 
     CornersPoints corners;
-    CornerDetection("./Data/HandEyeCalibrationData/0.png", &corners);
+    //CornerDetection("./Data/2025_04_24_102022795_image.png", &corners);
 
     GeneralHandEyeResult CalibResult;
-    Run(imagePath, pointCloudPath, robotPosePath, &cameraMatrix , &CalibResult);
+
+    InitCamera();
+
+    //GetPatternImage();
+
+
+    //AddRobotPose(1, 1, 1, 1, 1, 1);
+
+    //Calibrate(&CalibResult);
+
+    //Run(imagePath, pointCloudPath, robotPosePath, &cameraMatrix , &CalibResult);
 
     return 0;
 }

@@ -1,10 +1,6 @@
 #pragma once
 
 #include "pch.h"
-#include <plog/Log.h>
-#include <plog/Initializers/RollingFileInitializer.h>
-#include <plog/Formatters/TxtFormatter.h>
-#include <plog/Appenders/ColorConsoleAppender.h>
 #include <fstream>
 #include<iostream>
 
@@ -17,6 +13,8 @@
 #include <opencv2/highgui.hpp>
 #include "opencv2/objdetect/charuco_detector.hpp"
 
+#include "area_scan_3d_camera/HandEyeCalibration.h"
+
 using namespace cv;
 using namespace std;
 
@@ -26,10 +24,10 @@ public:
     enum Pattern { NOT_EXISTING, CHESSBOARD, CHARUCOBOARD, CIRCLES_GRID, ASYMMETRIC_CIRCLES_GRID };
     enum InputType { INVALID, CAMERA, VIDEO_FILE, IMAGE_LIST };
 
-    int boardWidth = 8;
-    int boardHeight = 8;
+    int boardWidth = 4;
+    int boardHeight = 5;
     //cv::Size boardSize(8, 11);
-    Pattern calibrationPattern = Settings::CHESSBOARD;  // One of the Chessboard, ChArUco board, circles, or asymmetric circle pattern
+    Pattern calibrationPattern = Settings::ASYMMETRIC_CIRCLES_GRID;  // One of the Chessboard, ChArUco board, circles, or asymmetric circle pattern
     float squareSize = 18;            // The size of a square in your defined unit (point, millimeter,etc).
     float markerSize = 10;            // The size of a marker in your defined unit (point, millimeter,etc).
     string arucoDictName = "DICT_4X4_1000";        // The Name of ArUco dictionary which you use in ChArUco pattern
@@ -41,10 +39,29 @@ private:
     string patternToUse;
 };
 
+//bool InitCamera();
+//
+//bool GetPatternImage();
+//
+//bool AddRobotPose(double x, double y, double z, double rx, double ry, double rz);
+//
+void saveExtrinsicParameters(const std::string& ExtrinsicParameters);
+
+mmind::eye::HandEyeCalibration::Transformation GetRobotPose(double x, double y, double z, double rx, double ry, double rz);
+
+mmind::eye::HandEyeCalibration::Transformation EulerToQuad(int eulerType, double x, double y,
+    double z, double R1, double R2, double R3);
+
+int poseIndex = 1;
+
+mmind::eye::Camera camera;
+mmind::eye::HandEyeCalibration calibration;
+mmind::eye::HandEyeCalibration::Transformation cameraToBase;
+
 Mat cameraMatrix(3, 3, CV_32FC1);
 Mat distortion(1, 5, CV_32FC1);
 
-const double PI = 3.14159265358979323846;  // 精确到18位小数
+#define PI 3.14159265
 
 vector<Mat> myRobotPose;
 vector<Mat> myCameraRotation;
@@ -64,6 +81,8 @@ bool GetCameraMatrixChessboard(const char* imagePath, cv::Mat CameraMatrix, cv::
 
 bool GetCameraMatrixAruco(const char* imagePath, cv::Mat CameraMatrix, cv::Mat CameraDistortion,
     vector<cv::Mat>& Rotation, vector<cv::Mat>& Transform, double& RMS);
+
+void ImageEnhance(Mat image);
 
 bool attitudeVector2Matrix(Mat m, Mat& R, Mat& T, bool isEuler);
 

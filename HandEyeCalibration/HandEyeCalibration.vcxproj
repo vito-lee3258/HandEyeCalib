@@ -72,12 +72,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;E:\Projects\HandEyeCalib\Version3.0\HandEyeCalib\include;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;E:\Projects\HandEyeCalib\Version3.0\HandEyeCalib\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
-    <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>E:\Projects\工具\opencv\build\include;E:\Projects\工具\opencv\build\include\opencv2;E:\Projects\HandEyeCalib\Version3.0\HandEyeCalib\include;$(IncludePath)</IncludePath>
+    <LibraryPath>E:\Projects\工具\opencv\build\x64\vc16\lib;E:\Projects\HandEyeCalib\Version3.0\HandEyeCalib\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -126,7 +126,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>opencv_world480d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world480d.lib;MechEyeApid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -146,7 +146,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>opencv_world480.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_world480.lib;MechEyeApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
